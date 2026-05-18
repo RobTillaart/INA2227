@@ -201,10 +201,21 @@ See datasheet, not tested.
 #### Must
 
 - keep in sync with INA226 where possible.
+- fix all TODO's
+- implement config2 register
+- implement flags register
+- copy/convert INA236/228 alike examples
+- buy hardware to test
+- write readme.md
+- check keywords
+- update comparison table (also other INAxxx)
+- all I forgot
 
 #### Should
 
 #### Could
+
+- look at unit tests
 
 #### Won't
 
