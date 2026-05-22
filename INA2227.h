@@ -19,12 +19,12 @@
 
 
 //  set by setAlertRegister
-#define INA2227_SHUNT_OVER_VOLTAGE         0x8000
-#define INA2227_SHUNT_UNDER_VOLTAGE        0x4000
-#define INA2227_BUS_OVER_VOLTAGE           0x2000
-#define INA2227_BUS_UNDER_VOLTAGE          0x1000
-#define INA2227_POWER_OVER_LIMIT           0x0800
-#define INA2227_CONVERSION_READY           0x0400
+#define INA2227_SHUNT_OVER_VOLTAGE         1
+#define INA2227_SHUNT_UNDER_VOLTAGE        2
+#define INA2227_BUS_OVER_VOLTAGE           3
+#define INA2227_BUS_UNDER_VOLTAGE          4
+#define INA2227_POWER_OVER_LIMIT           5
+
 
 //  returned by setMaxCurrentShunt
 #define INA2227_ERR_NONE                   0x0000
