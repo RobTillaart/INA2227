@@ -29,7 +29,9 @@
 
 
 //  MASKS INA2227_CONFIG1  (default 0xF127)
-#define INA2227_CONF_ACTIVE CHANNEL        0x3000
+#define INA2227_CONF_CHANNEL_ALL_MASK      0x3000
+#define INA2227_CONF_CHANNEL1_MASK         0x2000
+#define INA2227_CONF_CHANNEL0_MASK         0x1000
 #define INA2227_CONF_AVERAGE_MASK          0x0E00
 #define INA2227_CONF_VBUSCT_MASK           0x01C0
 #define INA2227_CONF_VSHCT_MASK            0x0038
@@ -38,6 +40,8 @@
 //  MASKS INA2227_CONFIG2  (default 0x0000)
 #define INA2227_CONF_RESET_MASK            0x8000
 #define INA2227_CONF_ACC_RST_MASK          0x0F00
+#define INA2227_CONF_ACC_RST1_MASK         0x0200
+#define INA2227_CONF_ACC_RST0_MASK         0x0100
 #define INA2227_CONF_CNVR_MASK             0x0080
 #define INA2227_CONF_ENOF_MASK             0x0040
 #define INA2227_CONF_ALERT_LATCH_MASK      0x0020
@@ -46,10 +50,10 @@
 #define INA2227_CONF_ADCRANGE0_MASK        0x0001
 
 //  MASKS INA2227_FLAGS  (default 0x0000)
-#define INA2227_FLAG_LIMIT2_ALERT          0x2000
-#define INA2227_FLAG_LIMIT1_ALERT          0x1000
-#define INA2227_FLAG_ENERGYOF_CH2          0x0200
-#define INA2227_FLAG_ENERGYOF_CH1          0x0100
+#define INA2227_FLAG_LIMIT1_ALERT          0x2000
+#define INA2227_FLAG_LIMIT0_ALERT          0x1000
+#define INA2227_FLAG_ENERGYOF_CH1          0x0200
+#define INA2227_FLAG_ENERGYOF_CH0          0x0100
 #define INA2227_FLAG_CONV_READY            0x0080
 #define INA2227_FLAG_OVERFLOW              0x0040
 
@@ -72,21 +76,18 @@ INA2227::INA2227(const uint8_t address, TwoWire *wire)
   _error          = 0;
 }
 
-
 bool INA2227::begin()
 {
   if (! isConnected()) return false;
-  //  TODO default initialization...?
+  //  default initialization...?
   return true;
 }
-
 
 bool INA2227::isConnected()
 {
   _wire->beginTransmission(_address);
   return ( _wire->endTransmission() == 0);
 }
-
 
 uint8_t INA2227::getAddress()
 {
@@ -96,9 +97,54 @@ uint8_t INA2227::getAddress()
 
 ////////////////////////////////////////////////////////
 //
+//  ENABLE FUNCTIONS
+//
+void INA2227::enableChannel(uint8_t ch)
+{
+  if (ch > 1) return;
+  uint16_t mask = _readRegister(INA2227_CONFIG1);
+  if (ch == 0) mask |= INA2227_CONF_CHANNEL0_MASK;
+  else         mask |= INA2227_CONF_CHANNEL1_MASK;
+  _writeRegister(INA2227_CONFIG1, mask);
+}
+
+void INA2227::disableChannel(uint8_t ch)
+{
+  if (ch > 1) return;
+  uint16_t mask = _readRegister(INA2227_CONFIG1);
+  if (ch == 0) mask &= ~INA2227_CONF_CHANNEL0_MASK;
+  else         mask &= ~INA2227_CONF_CHANNEL1_MASK;
+  _writeRegister(INA2227_CONFIG1, mask);
+}
+
+void INA2227::enableAllChannels()
+{
+  uint16_t mask = _readRegister(INA2227_CONFIG1);
+  mask |= INA2227_CONF_CHANNEL_ALL_MASK;
+  _writeRegister(INA2227_CONFIG1, mask);
+}
+
+void INA2227::disableAllChannels()
+{
+  uint16_t mask = _readRegister(INA2227_CONFIG1);
+  mask &= ~INA2227_CONF_CHANNEL_ALL_MASK;
+  _writeRegister(INA2227_CONFIG1, mask);
+}
+
+bool INA2227::isEnabled(uint8_t ch)
+{
+  if (ch > 1) return false;
+  uint16_t mask = _readRegister(INA2227_CONFIG1);
+  if (ch == 0) return (mask & INA2227_CONF_CHANNEL0_MASK) > 0;
+  return (mask & INA2227_CONF_CHANNEL1_MASK) > 0;
+}
+
+
+////////////////////////////////////////////////////////
+//
 //  CORE FUNCTIONS
 //
-//  page 23  7.1.7  CHECKED.
+//  page 23  7.1.7
 float INA2227::getBusVoltage(uint8_t ch)
 {
   uint8_t reg = INA2227_BUS_VOLTAGE;
@@ -110,7 +156,7 @@ float INA2227::getBusVoltage(uint8_t ch)
   return voltage;
 }
 
-//  page 23  7.1.6  CHECKED
+//  page 23  7.1.6
 float INA2227::getShuntVoltage(uint8_t ch)
 {
   uint8_t reg = INA2227_SHUNT_VOLTAGE;
@@ -124,7 +170,7 @@ float INA2227::getShuntVoltage(uint8_t ch)
   return voltage;
 }
 
-//  page 24  7.1.8  CHECKED
+//  page 24  7.1.8
 float INA2227::getCurrent(uint8_t ch)
 {
   uint8_t reg = INA2227_CURRENT;
@@ -134,7 +180,7 @@ float INA2227::getCurrent(uint8_t ch)
   return val * _current_LSB[ch];
 }
 
-//  page 24  7.1.9  CHECKED
+//  page 24  7.1.9
 float INA2227::getPower(uint8_t ch)
 {
   uint8_t reg = INA2227_POWER;
@@ -144,8 +190,8 @@ float INA2227::getPower(uint8_t ch)
   return val * (_current_LSB[ch] * 32);
 }
 
-//  page 24  7.1.10  CHECKED
-double INA2227::getEnergy(uint8_t ch)
+//  page 24  7.1.10
+float INA2227::getEnergy(uint8_t ch)
 {
   uint8_t reg = INA2227_ENERGY;
   if (ch == 1) reg += 8;
@@ -160,14 +206,14 @@ double INA2227::getEnergy(uint8_t ch)
 //
 //  FLAGS REGISTER 0x12
 //
-//  page 25  7.1.11  CHECKED
+//  page 25  7.1.11
 bool INA2227::isConversionReady()
 {
   uint16_t mask = _readRegister(INA2227_FLAGS);
   return (mask & INA2227_FLAG_CONV_READY) > 0;
 }
 
-//  page 25  7.1.11  CHECKED
+//  page 25  7.1.11
 bool INA2227::waitConversionReady(uint32_t timeout)
 {
   uint32_t start = millis();
@@ -179,12 +225,40 @@ bool INA2227::waitConversionReady(uint32_t timeout)
   return false;
 }
 
+bool INA2227::hasMathOverflow()
+{
+  uint16_t mask = _readRegister(INA2227_FLAGS);
+  return (mask & INA2227_FLAG_OVERFLOW) > 0;
+}
+
+bool INA2227::hasAlertLimit(uint8_t ch)
+{
+  if (ch > 1) return false;
+  uint16_t mask = _readRegister(INA2227_FLAGS);
+  if (ch == 0) return (mask & INA2227_FLAG_LIMIT0_ALERT) > 0;
+  return (mask & INA2227_FLAG_LIMIT1_ALERT) > 0;
+}
+
+bool INA2227::hasEnergyOverflow(uint8_t ch)
+{
+  if (ch > 1) return false;
+  uint16_t mask = _readRegister(INA2227_FLAGS);
+  if (ch == 0) return (mask & INA2227_FLAG_ENERGYOF_CH0) > 0;
+  return (mask & INA2227_FLAG_ENERGYOF_CH1) > 0;
+}
+
+uint16_t INA2227::getFlags()
+{
+  return _readRegister(INA2227_FLAGS);
+}
+
+
 
 ////////////////////////////////////////////////////////
 //
 //  CONFIG1 REGISTER 0x10
 //
-//  page 20  7.1.1  CHECKED
+//  page 20  7.1.1
 bool INA2227::setAverage(uint8_t avg)
 {
   if (avg > 7) return false;
@@ -195,7 +269,6 @@ bool INA2227::setAverage(uint8_t avg)
   return true;
 }
 
-//  page 20  7.1.1  CHECKED
 uint8_t INA2227::getAverage()
 {
   uint16_t mask = _readRegister(INA2227_CONFIG1);
@@ -204,7 +277,6 @@ uint8_t INA2227::getAverage()
   return mask;
 }
 
-//  page 20  7.1.1  CHECKED
 bool INA2227::setBusVoltageConversionTime(uint8_t bvct)
 {
   if (bvct > 7) return false;
@@ -215,7 +287,6 @@ bool INA2227::setBusVoltageConversionTime(uint8_t bvct)
   return true;
 }
 
-//  page 20  7.1.1  CHECKED
 uint8_t INA2227::getBusVoltageConversionTime()
 {
   uint16_t mask = _readRegister(INA2227_CONFIG1);
@@ -224,7 +295,6 @@ uint8_t INA2227::getBusVoltageConversionTime()
   return mask;
 }
 
-//  page 20  7.1.1  CHECKED
 bool INA2227::setShuntVoltageConversionTime(uint8_t svct)
 {
   if (svct > 7) return false;
@@ -235,7 +305,6 @@ bool INA2227::setShuntVoltageConversionTime(uint8_t svct)
   return true;
 }
 
-//  page 20  7.1.1  CHECKED
 uint8_t INA2227::getShuntVoltageConversionTime()
 {
   uint16_t mask = _readRegister(INA2227_CONFIG1);
@@ -244,7 +313,6 @@ uint8_t INA2227::getShuntVoltageConversionTime()
   return mask;
 }
 
-//  page 20  7.1.1  CHECKED
 bool INA2227::setMode(uint8_t mode)
 {
   if (mode > 7) return false;
@@ -255,7 +323,6 @@ bool INA2227::setMode(uint8_t mode)
   return true;
 }
 
-//  page 20  7.1.1  CHECKED
 uint8_t INA2227::getMode()
 {
   uint16_t mode = _readRegister(INA2227_CONFIG1);
@@ -268,7 +335,7 @@ uint8_t INA2227::getMode()
 //
 //  CONFIG2 REGISTER 0x11
 //
-//  page 20  7.1.2  CHECKED
+//  page 20  7.1.2
 bool INA2227::reset()
 {
   uint16_t result = _writeRegister(INA2227_CONFIG2, INA2227_CONF_RESET_MASK);
@@ -285,7 +352,91 @@ bool INA2227::reset()
   return true;
 }
 
-//  page 21  7.1.2  CHECKED
+bool INA2227::resetEnergyAccumulator(uint8_t ch)
+{
+  if (ch > 1) return false;
+  uint16_t mask = _readRegister(INA2227_CONFIG2);
+  //  can be optimized with bit magic.
+  if (ch == 0)
+  {
+    mask |= INA2227_CONF_ACC_RST0_MASK;
+  }
+  else
+  {
+    mask |= INA2227_CONF_ACC_RST1_MASK;
+  }
+  _writeRegister(INA2227_CONFIG2, mask);
+}
+
+bool INA2227::getEnergyAccumulatorChannel(uint8_t ch)
+{
+  if (ch > 1) return false;
+  uint16_t mask = _readRegister(INA2227_CONFIG2);
+  //  can be optimized with bit magic.
+  if (ch == 0) return ( mask & INA2227_CONF_ACC_RST0_MASK) > 0;
+  return ( mask & INA2227_CONF_ACC_RST0_MASK) > 0;
+}
+
+bool INA2227::setAlertConvertReady(bool cnvr)
+{
+  uint16_t mask = _readRegister(INA2227_CONFIG2);
+  if (cnvr) mask |= INA2227_CONF_CNVR_MASK;
+  else mask &= ~INA2227_CONF_CNVR_MASK;
+  _writeRegister(INA2227_CONFIG2, mask);
+  return true;
+}
+
+bool INA2227::getAlertConvertReady()
+{
+  uint16_t mask = _readRegister(INA2227_CONFIG2);
+  return (mask & INA2227_CONF_CNVR_MASK) > 0;
+}
+
+bool INA2227::setAlertEnergyOverflow(bool enof)
+{
+  uint16_t mask = _readRegister(INA2227_CONFIG2);
+  if (enof) mask |= INA2227_CONF_ENOF_MASK;
+  else mask &= ~INA2227_CONF_ENOF_MASK;
+  _writeRegister(INA2227_CONFIG2, mask);
+  return true;
+}
+
+bool INA2227::getAlertEnergyOverflow()
+{
+  uint16_t mask = _readRegister(INA2227_CONFIG2);
+  return (mask & INA2227_CONF_ENOF_MASK) > 0;
+}
+
+bool INA2227::setAlertLatchEnable(bool latch)
+{
+  uint16_t mask = _readRegister(INA2227_CONFIG2);
+  if (latch) mask |= INA2227_CONF_ALERT_LATCH_MASK;
+  else mask &= ~INA2227_CONF_ALERT_LATCH_MASK;
+  _writeRegister(INA2227_CONFIG2, mask);
+  return true;
+}
+
+bool INA2227::getAlertLatchEnable()
+{
+  uint16_t mask = _readRegister(INA2227_CONFIG2);
+  return (mask & INA2227_CONF_ALERT_LATCH_MASK) > 0;
+}
+
+bool INA2227::setAlertPolarity(bool inverted)
+{
+  uint16_t mask = _readRegister(INA2227_CONFIG2);
+  if (inverted) mask |= INA2227_CONF_ALERT_POL_MASK;
+  else mask &= ~INA2227_CONF_ALERT_POL_MASK;
+  _writeRegister(INA2227_CONFIG2, mask);
+  return true;
+}
+
+bool INA2227::getAlertPolarity()
+{
+  uint16_t mask = _readRegister(INA2227_CONFIG2);
+  return (mask & INA2227_CONF_ALERT_POL_MASK) > 0;
+}
+
 bool INA2227::setADCRange(uint8_t ch, bool flag)
 {
   if (ch > 1) return false;
@@ -315,7 +466,6 @@ bool INA2227::setADCRange(uint8_t ch, bool flag)
   return rv;
 }
 
-//  page 21  7.1.2  CHECKED
 uint8_t INA2227::getADCRange(uint8_t ch)
 {
   if (ch > 1) return 0;  //  error flag
@@ -335,9 +485,9 @@ uint8_t INA2227::getADCRange(uint8_t ch)
 
 ////////////////////////////////////////////////////////
 //
-//  CALIBRATION
+//  CALIBRATION REGISTER 0x05 / 0x0D
 //
-//  page 27  8.1.2  CHECKED
+//  page 27  8.1.2
 int INA2227::setMaxCurrentShunt(uint8_t ch, float maxCurrent, float shunt, bool normalize)
 {
   if (ch > 1) return INA2227_ERR_CHANNEL_RANGE;
@@ -533,7 +683,7 @@ int INA2227::setMaxCurrentShunt(uint8_t ch, float maxCurrent, float shunt, bool 
 
 ////////////////////////////////////////////////////////
 //
-//  ALERT LIMIT REGISTER 0x06
+//  ALERT LIMIT REGISTER 0x06 / 0x0E
 //
 bool INA2227::setAlertLimit(uint8_t ch, uint16_t limit)
 {
@@ -554,70 +704,27 @@ uint16_t INA2227::getAlertLimit(uint8_t ch)
 }
 
 
-/*
-
-TO REWRITE
-page 14,  6.3.5
-
-
-- add channel param
-
 ////////////////////////////////////////////////////////
 //
-//  ALERT CONFIG REGISTER 0x07
+//  ALERT CONFIG REGISTER 0x07 / 0x0F
 //
-bool INA2227::setAlertRegister(uint16_t mask)
+bool INA2227::setAlertConfig(uint8_t ch, uint16_t mask)
 {
-  uint16_t result = _writeRegister(INA2227_MASK_ENABLE, mask);
+  uint8_t reg = INA2227_ALERT_LIMIT;
+  if (ch == 1) reg += 8;
+  uint16_t result = _writeRegister(reg, mask);
   //  Serial.println(result);
   if (result != 0) return false;
   return true;
 }
 
 
-uint16_t INA2227::getAlertRegister()
+uint16_t INA2227::getAlertConfig(uint8_t ch)
 {
-  return _readRegister(INA2227_MASK_ENABLE);
+  uint8_t reg = INA2227_ALERT_LIMIT;
+  if (ch == 1) reg += 8;
+  return _readRegister(reg);
 }
-
-
-bool INA2227::setAlertLatchEnable(bool latch)
-{
-  uint16_t mask = _readRegister(INA2227_MASK_ENABLE);
-  if (latch) mask |= INA2227_ALERT_LATCH_ENABLE_FLAG;
-  else       mask &= ~INA2227_ALERT_LATCH_ENABLE_FLAG;
-  uint16_t result = _writeRegister(INA2227_MASK_ENABLE, mask);
-  if (result != 0) return false;
-  return true;
-}
-
-
-bool INA2227::getAlertLatchEnable()
-{
-  uint16_t mask = _readRegister(INA2227_MASK_ENABLE);
-  return mask & INA2227_ALERT_LATCH_ENABLE_FLAG;
-}
-
-
-bool INA2227::setAlertPolarity(bool inverted)
-{
-  uint16_t mask = _readRegister(INA2227_MASK_ENABLE);
-  if (inverted) mask |= INA2227_ALERT_POLARITY_FLAG;
-  else          mask &= ~INA2227_ALERT_POLARITY_FLAG;
-  uint16_t result = _writeRegister(INA2227_MASK_ENABLE, mask);
-  if (result != 0) return false;
-  return true;
-}
-
-
-bool INA2227::getAlertPolarity()
-{
-  uint16_t mask = _readRegister(INA2227_MASK_ENABLE);
-  return mask & INA2227_ALERT_POLARITY_FLAG;
-}
-*/
-
-
 
 
 ////////////////////////////////////////////////////////

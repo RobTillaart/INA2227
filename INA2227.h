@@ -12,17 +12,7 @@
 #include "Arduino.h"
 #include "Wire.h"
 
-/*
-WORK IN PROGRESS - NOT TESTED WITH HARDWARE
-
-TODO
-- select active channels ?
-- 7.1.2 CONFIG2 Register (Address = 0x11h)
-- 7.1.11 FLAGS register (Address = 0x12h)
-- alerts
-- examples
-- readme.md
-*/
+//  WORK IN PROGRESS - NOT TESTED WITH HARDWARE - FEEDBACK WELCOME
 
 
 #define INA2227_LIB_VERSION                (F("0.1.0"))
@@ -35,15 +25,6 @@ TODO
 #define INA2227_BUS_UNDER_VOLTAGE          0x1000
 #define INA2227_POWER_OVER_LIMIT           0x0800
 #define INA2227_CONVERSION_READY           0x0400
-
-
-//  returned by getAlertFlag
-#define INA2227_ALERT_FUNCTION_FLAG        0x0010
-#define INA2227_CONVERSION_READY_FLAG      0x0008
-#define INA2227_MATH_OVERFLOW_FLAG         0x0004
-#define INA2227_ALERT_POLARITY_FLAG        0x0002
-#define INA2227_ALERT_LATCH_ENABLE_FLAG    0x0001
-
 
 //  returned by setMaxCurrentShunt
 #define INA2227_ERR_NONE                   0x0000
@@ -84,6 +65,18 @@ enum INA2227_timing_enum {
     INA2227_2100_us = 5,
     INA2227_4200_us = 6,
     INA2227_8300_us = 7
+};
+
+
+enum INA2227_mode_enum {
+    INA2227_MODE_SHUTDOWN       = 0,
+    INA2227_MODE_TRIG_BUS       = 1,
+    INA2227_MODE_TRIG_SHUNT     = 2,
+    INA2227_MODE_TRIG_BUS_SHUNT = 3,
+    INA2227_MODE_SHUTDOWN2      = 4,  //  for completeness
+    INA2227_MODE_CONT_BUS       = 5,
+    INA2227_MODE_CONT_SHUNT     = 6,
+    INA2227_MODE_CONT_BUS_SHUNT = 7,
 };
 
 
@@ -128,17 +121,24 @@ public:
 
   //  the Energy functions are returning double as they have higher accuracy.
   //       ENERGY
-  double   getEnergy(uint8_t ch);         //  Joule or watt second
-  double   getJoule(uint8_t ch)           { return getEnergy(ch); };
-  double   getMegaJoule(uint8_t ch)       { return getEnergy(ch) * 1e-6; };
-  double   getKiloJoule(uint8_t ch)       { return getEnergy(ch) * 1e-3; };
-  double   getMilliJoule(uint8_t ch)      { return getEnergy(ch) * 1e3; };
-  double   getMicroJoule(uint8_t ch)      { return getEnergy(ch) * 1e6; };
-  double   getWattHour(uint8_t ch)        { return getEnergy(ch) * (1.0  / 3600.0); };
-  double   getKiloWattHour(uint8_t ch)    { return getEnergy(ch) * (1e-3 / 3600.0); };
+  float    getEnergy(uint8_t ch);         //  Joule or watt second
+  float    getJoule(uint8_t ch)           { return getEnergy(ch); };
+  float    getMegaJoule(uint8_t ch)       { return getEnergy(ch) * 1e-6; };
+  float    getKiloJoule(uint8_t ch)       { return getEnergy(ch) * 1e-3; };
+  float    getMilliJoule(uint8_t ch)      { return getEnergy(ch) * 1e3; };
+  float    getMicroJoule(uint8_t ch)      { return getEnergy(ch) * 1e6; };
+  float    getWattHour(uint8_t ch)        { return getEnergy(ch) * (1.0  / 3600.0); };
+  float    getKiloWattHour(uint8_t ch)    { return getEnergy(ch) * (1e-3 / 3600.0); };
 
 
   //  Configuration register 1
+  //  default both channels are enabled.
+  void     enableChannel(uint8_t ch);
+  void     disableChannel(uint8_t ch);
+  void     enableAllChannels();
+  void     disableAllChannels();
+  bool     isEnabled(uint8_t ch);
+
   bool     setAverage(uint8_t avg = INA2227_1_SAMPLE);
   uint8_t  getAverage();
   bool     setBusVoltageConversionTime(uint8_t bvct = INA2227_1100_us);
@@ -158,43 +158,47 @@ public:
   bool     setModeShuntBusContinuous() { return setMode(7); };  //  default.
 
 
-  //  Configuration register 2
+  //  Configuration register 2  (read datasheet for details)
   bool     reset();
+  //  ACC_RST Energy accumulator
+  bool     resetEnergyAccumulator(uint8_t ch);
+  bool     getEnergyAccumulatorChannel(uint8_t ch);
+  //  CNVR_MASK - ALERT pin reflects conversion ready
+  bool     setAlertConvertReady(bool cnvr = false);
+  bool     getAlertConvertReady();
+  //  ENOF_MASK - ALERT pin reflects energy overflow
+  bool     setAlertEnergyOverflow(bool enof = false);
+  bool     getAlertEnergyOverflow();
+  //  ALERT_LATCH - ALERT pin latches during fault
+  bool     setAlertLatchEnable(bool latch = false);
+  bool     getAlertLatchEnable();
+  //  ALERT_POL - ALERT pin polarity
+  bool     setAlertPolarity(bool inverted = false);
+  bool     getAlertPolarity();
   //  flag = false => 80 mV, true => 20 mV
   bool     setADCRange(uint8_t ch, bool flag);
   uint8_t  getADCRange(uint8_t ch);
-/*
-  TODO part of config2 register
-  - ACC_reset
-  - CNVR_MASK
-  - ENOF_MASK
-  bool     setAlertLatchEnable(uint8_t ch, bool latch = false);
-  bool     getAlertLatchEnable(uint8_t ch);
-  bool     setAlertPolarity(uint8_t ch, bool inverted = false);
-  bool     getAlertPolarity(uint8_t ch);
-*/
 
 
-  //  FLAGS REGISTER
+  //  FLAGS REGISTER 0x12
   bool     isConversionReady();   //  conversion ready flag is set.
   bool     waitConversionReady(uint32_t timeout = INA2227_MAX_WAIT_MS);
-/*
-  TODO part of flags register
-  field access functions
-*/
+  bool     hasMathOverflow();
+  bool     hasAlertLimit(uint8_t ch);
+  bool     hasEnergyOverflow(uint8_t ch);
+  uint16_t getFlags();  //  to check all at once.
+
 
   //  ALERT LIMIT REGISTER
-  //  (not tested)
+  //  (not tested - check datasheet)
   bool     setAlertLimit(uint8_t ch, uint16_t limit);
   uint16_t getAlertLimit(uint8_t ch);
 
   //  ALERT CONFIG REGISTER
-  //  (not tested)
-  bool     setAlertRegister(uint8_t ch, uint16_t mask);
-  uint16_t getAlertRegister(uint8_t ch);
-/*
-  TODO field access functions.
-*/
+  //  (not tested - check datasheet)
+  bool     setAlertConfig(uint8_t ch, uint16_t mask);
+  uint16_t getAlertConfig(uint8_t ch);
+
 
   //  Calibration
   //  mandatory to set these!

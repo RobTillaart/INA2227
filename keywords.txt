@@ -10,6 +10,7 @@ begin	KEYWORD2
 isConnected	KEYWORD2
 getAddress	KEYWORD2
 
+# CORE
 getBusVoltage	KEYWORD2
 getBusVolt	KEYWORD2
 getBusVoltage_mV	KEYWORD2
@@ -19,8 +20,6 @@ getShuntVoltage	KEYWORD2
 getShuntVolt	KEYWORD2
 getBusVoltage_mV	KEYWORD2
 getShuntVoltage_uV	KEYWORD2
-
-getShuntVoltageRAW
 
 getCurrent	KEYWORD2
 getAmpere	KEYWORD2
@@ -33,10 +32,23 @@ getPower_mW	KEYWORD2
 getPower_uW	KEYWORD2
 getPower_kW	KEYWORD2
 
-isConversionReady	KEYWORD2
-waitConversionReady	KEYWORD2
+getEnergy	KEYWORD2
+getJoule	KEYWORD2
+getMegaJoule	KEYWORD2
+getKiloJoule	KEYWORD2
+getMilliJoule	KEYWORD2
+getMicroJoule	KEYWORD2
+getWattHour	KEYWORD2
+getKiloWattHour	KEYWORD2
 
-reset	KEYWORD2
+
+# CONFIG 1
+enableChannel	KEYWORD2
+disableChannel	KEYWORD2
+enableAllChannels	KEYWORD2
+disableAllChannels	KEYWORD2
+isEnabled	KEYWORD2
+
 setAverage	KEYWORD2
 getAverage	KEYWORD2
 setBusVoltageConversionTime	KEYWORD2
@@ -44,9 +56,46 @@ getBusVoltageConversionTime	KEYWORD2
 setShuntVoltageConversionTime	KEYWORD2
 getShuntVoltageConversionTime	KEYWORD2
 
+setMode	KEYWORD2
+getMode	KEYWORD2
+shutDown	KEYWORD2
+setModeShuntTrigger	KEYWORD2
+setModeBusTrigger	KEYWORD2
+setModeShuntBusTrigger	KEYWORD2
+setModeShuntContinuous	KEYWORD2
+setModeBusContinuous	KEYWORD2
+setModeShuntBusContinuous	KEYWORD2
+
+
+# CONFIG 2
+reset	KEYWORD2
+resetEnergyAccumulator	KEYWORD2
+getEnergyAccumulatorChannel	KEYWORD2
+
+setAlertConvertReady	KEYWORD2
+getAlertConvertReady	KEYWORD2
+setAlertEnergyOverflow	KEYWORD2
+getAlertEnergyOverflow	KEYWORD2
+
+setAlertLatchEnable	KEYWORD2
+getAlertLatchEnable	KEYWORD2
+setAlertPolarity	KEYWORD2
+setAlertPolarity	KEYWORD2
+
 setADCRange	KEYWORD2
 getADCRange	KEYWORD2
 
+
+# FLAGS
+isConversionReady	KEYWORD2
+waitConversionReady	KEYWORD2
+hasMathOverflow	KEYWORD2
+hasAlertLimit	KEYWORD2
+hasEnergyOverflow	KEYWORD2
+getFlags	KEYWORD2
+
+
+# CALIBRATION
 setMaxCurrentShunt	KEYWORD2
 isCalibrated	KEYWORD2
 getCurrentLSB	KEYWORD2
@@ -55,31 +104,23 @@ getCurrentLSB_uA	KEYWORD2
 getShunt	KEYWORD2
 getMaxCurrent	KEYWORD2
 
-setMode	KEYWORD2
-getMode	KEYWORD2
-shutDown	KEYWORD2
 
-setModeShuntTrigger	KEYWORD2
-setModeBusTrigger	KEYWORD2
-setModeShuntBusTrigger	KEYWORD2
-setModeShuntContinuous	KEYWORD2
-setModeBusContinuous	KEYWORD2
-setModeShuntBusContinuous	KEYWORD2
-
-setAlertRegister	KEYWORD2
-getAlertRegister	KEYWORD2
-setAlertLatchEnable	KEYWORD2
-getAlertLatchEnable	KEYWORD2
-setAlertPolarity	KEYWORD2
-getAlertPolarity	KEYWORD2
-
+# ALERT LIMIT
 setAlertLimit	KEYWORD2
 getAlertLimit	KEYWORD2
 
-getManufacturerID	KEYWORD2
-getDieID	KEYWORD2
+# ALERT CONFIG
+setAlertRegister	KEYWORD2
+getAlertRegister	KEYWORD2
 
+# META
+getManufacturerID	KEYWORD2
+getDeviceID	KEYWORD2
+
+# DEBUG
 getLastError	KEYWORD2
+
+
 
 # Constants (LITERAL1)
 INA2227_LIB_VERSION	LITERAL1
@@ -127,3 +168,17 @@ INA2227_1100_us	LITERAL1
 INA2227_2100_us	LITERAL1
 INA2227_4200_us	LITERAL1
 INA2227_8300_us	LITERAL1
+
+
+# Mode
+
+INA2227_MODE_SHUTDOWN	LITERAL1
+INA2227_MODE_TRIG_BUS	LITERAL1
+INA2227_MODE_TRIG_SHUNT	LITERAL1
+INA2227_MODE_TRIG_BUS_SHUNT	LITERAL1
+INA2227_MODE_SHUTDOWN	LITERAL1
+INA2227_MODE_CONT_BUS	LITERAL1
+INA2227_MODE_CONT_SHUNT	LITERAL1
+INA2227_MODE_CONT_BUS_SHUNT	LITERAL1
+
+
