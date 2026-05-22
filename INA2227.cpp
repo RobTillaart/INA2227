@@ -366,6 +366,7 @@ bool INA2227::resetEnergyAccumulator(uint8_t ch)
     mask |= INA2227_CONF_ACC_RST1_MASK;
   }
   _writeRegister(INA2227_CONFIG2, mask);
+  return true;
 }
 
 bool INA2227::getEnergyAccumulatorChannel(uint8_t ch)
