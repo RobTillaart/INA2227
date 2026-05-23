@@ -12,7 +12,9 @@
 #include "Arduino.h"
 #include "Wire.h"
 
-//  WORK IN PROGRESS - NOT TESTED WITH HARDWARE - FEEDBACK WELCOME
+//  WORK IN PROGRESS
+//  NOT TESTED WITH HARDWARE
+//  FEEDBACK WELCOME
 
 
 #define INA2227_LIB_VERSION                (F("0.1.0"))

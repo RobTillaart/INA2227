@@ -37,15 +37,21 @@ A few important maxima, see datasheet.
 | shunt voltage |  80   | mVolt  |  can be set to 20 mV.
 | current       |  20   | Ampere |  depends on shunt
 
-Note:
-The library is written based upon the datasheet (and experiences with other INA sensors) however it is NOT tested yet with hardware.
-If you have an INA2227 and you have results, please let me know.
+Feedback as always is welcome.
+
+
+**WORK IN PROGRESS**
+
+The library is written based upon the datasheet (and experiences with other INA sensors) 
+however it is NOT tested yet with hardware.
+Not all functionality is completely implemented, especially the ALERT limit 
+and configuration functions. So advise is to use with care.
+If you have an INA2227 and you have issues, please let me know so I can fix them.
+Of course also interested in the confirmation of the working parts.
 
 _This library and documentation is based upon the INA236 and INA228 library,
-and may contain information not updated yet.
+and may contain information not updated (or removed) yet.
 Please open an issue if needed._
-
-Feedback as always is welcome.
 
 
 ### Special characters
